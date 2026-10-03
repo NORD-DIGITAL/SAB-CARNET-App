@@ -1,0 +1,42 @@
+name: Construire l'APK Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Gradle assembleDebug
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../SabCarnet.apk
+      - name: Publier l'APK (téléchargement direct)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: SAB-CARNET (dernière version)
+          body: |
+            Télécharge **SabCarnet.apk** directement depuis ton téléphone Android, puis ouvre-le pour l'installer.
+            Version construite automatiquement à partir du commit ${{ github.sha }}.
+          make_latest: true
+          files: SabCarnet.apk
