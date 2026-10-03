@@ -8,6 +8,7 @@ import { Brand } from './Auth'
 import { APP_LABEL } from '../lib/version'
 
 export const PLANS: { days: number; label: string }[] = [
+  { days: 5, label: 'Test 5 jours' },
   { days: 30, label: '30 jours' }, { days: 90, label: '3 mois' }, { days: 180, label: '6 mois' }, { days: 365, label: '12 mois' },
 ]
 export const planLabel = (d: number) => PLANS.find((p) => p.days === d)?.label ?? `${d} jours`
@@ -67,7 +68,7 @@ export function GoCodeScreen() {
       <CodeInput r={r} />
       <div className="mt-8 rounded-2xl border border-cream-line bg-cream-tile p-4 text-sm">
         <p className="mb-2 font-semibold">Formules disponibles</p>
-        <div className="grid grid-cols-2 gap-2">{PLANS.map((p) => <span key={p.days} className="rounded-xl bg-white px-3 py-2 text-center">{p.label}</span>)}</div>
+        <div className="grid grid-cols-2 gap-2">{PLANS.filter((p) => p.days >= 30).map((p) => <span key={p.days} className="rounded-xl bg-white px-3 py-2 text-center">{p.label}</span>)}</div>
         <p className="mt-3 text-ink-muted">Pas encore de Go Code ? Envoie une demande : l'équipe te contacte pour le paiement.</p>
         <button onClick={ask} disabled={sent} className="btn-dark mt-3 w-full py-2.5 text-sm"><Send size={16} /> {sent ? 'Demande envoyée ✔' : 'Demander un Go Code'}</button>
       </div>

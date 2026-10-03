@@ -117,7 +117,7 @@ function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
       <section>
         <h2 className="mb-2 flex items-center gap-2 font-semibold"><KeyRound size={18} /> Générer un Go Code</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {PLANS.map((p) => <button key={p.days} disabled={busy} onClick={() => generate(p.days)} className="btn-primary py-3">{p.label}</button>)}
+          {PLANS.map((p) => <button key={p.days} disabled={busy} onClick={() => generate(p.days)} className={`${p.days < 30 ? 'btn-dark col-span-2 sm:col-span-4' : 'btn-primary'} py-3`}>{p.label}</button>)}
         </div>
         <p className="mt-2 text-xs text-ink-muted">Le code est réservé à ce compte, utilisable une seule fois. Les jours s'ajoutent à ceux qui restent.</p>
       </section>
