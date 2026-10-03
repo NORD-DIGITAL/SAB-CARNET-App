@@ -24,6 +24,13 @@ Version 1.1 :
 - **Dettes** : prêté / remboursé / reste dès l'ouverture, carte par personne avec progression, fiche avec historique et solde.
 - Thème **Océan** par défaut ; mise en page élargie pour les écrans ≥ 1920 px.
 
+Version 1.2 :
+- **Business** : on choisit d'abord entre deux grandes cases, **Business Perso** (ventes, stock, achats, bilan) et
+  **Business Pro** (partenaires, historique, bilan pro). Chaque menu a son historique et un bloc « L'essentiel » qui
+  analyse les chiffres (retards, échéances de la semaine, recouvrement, stock qui dort, meilleure marge, mois record,
+  collaborations sans retour…).
+- **Personnes** classées : Famille, Amis, Employés de Mamod, Partenaires commerciaux, Autres (filtre avec montants dans Dettes).
+
 Prévu ensuite : Projets.
 
 ## Base de données (Supabase, projet « SAB-CARNET-App »)

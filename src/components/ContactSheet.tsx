@@ -3,10 +3,10 @@ import { ChevronRight, HandCoins, HandHeart, MessageCircle, Pencil, Phone } from
 import { supabase } from '../lib/supabase'
 import { useData } from '../lib/data'
 import { fmt } from '../lib/format'
-import type { DebtOwed, LoanGiven } from '../lib/types'
+import type { DebtOwed, LoanGiven, PersonCat } from '../lib/types'
 import { Sheet } from './ui'
 import { fmtDateLong } from './DatePicker'
-import { ErrorBox, methodLabel, waLink } from './forms'
+import { ErrorBox, PersonBadge, PersonCatChips, methodLabel, waLink } from './forms'
 import { useForms } from './FormHost'
 import type { FormReq } from './FormHost'
 import { StatusBadge } from './SaleDetail'
@@ -23,8 +23,9 @@ export function ContactSheet({ open, onClose, id }: { open: boolean; onClose: ()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [cat, setCat] = useState<PersonCat>('autre')
   const [err, setErr] = useState('')
-  useEffect(() => { if (c) { setName(c.name); setPhone(c.phone ?? '') } }, [c])
+  useEffect(() => { if (c) { setName(c.name); setPhone(c.phone ?? ''); setCat(c.category ?? 'autre') } }, [c])
 
   const mySales = sales.filter((s) => s.contact_id === id)
   const myLoans = loans.filter((l) => l.contact_id === id)
@@ -70,7 +71,7 @@ export function ContactSheet({ open, onClose, id }: { open: boolean; onClose: ()
 
   const saveContact = async () => {
     if (!name.trim()) return setErr('Le nom est obligatoire.')
-    const { error } = await supabase.from('contacts').update({ name: name.trim(), phone: phone.trim() || null }).eq('id', id)
+    const { error } = await supabase.from('contacts').update({ name: name.trim(), phone: phone.trim() || null, category: cat }).eq('id', id)
     if (error) return setErr(error.message)
     setEditing(false); setErr(''); await reload()
   }
@@ -105,6 +106,7 @@ export function ContactSheet({ open, onClose, id }: { open: boolean; onClose: ()
           <div className="space-y-3">
             <input className="input" aria-label="Nom" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="input tabular" aria-label="Téléphone" inputMode="tel" placeholder="Téléphone (ex : 034 12 345 67)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <PersonCatChips value={cat} onChange={setCat} />
             <ErrorBox msg={err} />
             <div className="flex gap-2"><button onClick={() => setEditing(false)} className="btn-ghost flex-1">Annuler</button><button onClick={saveContact} className="btn-primary flex-1">Enregistrer</button></div>
           </div>
@@ -112,7 +114,7 @@ export function ContactSheet({ open, onClose, id }: { open: boolean; onClose: ()
           <div className="flex items-center gap-3">
             <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-white ${late ? 'bg-red-500' : 'bg-ink'}`}>{c.name.charAt(0).toUpperCase()}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xl font-semibold">{c.name}</p>
+              <p className="flex items-center gap-2"><span className="truncate text-xl font-semibold">{c.name}</span><PersonBadge k={c.category} /></p>
               {c.phone ? <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="tabular flex items-center gap-1 text-sm text-[#4A56E2]"><Phone size={14} /> {c.phone}</a> : <p className="text-sm text-ink-muted">Pas de téléphone</p>}
             </div>
             <button onClick={() => setEditing(true)} aria-label="Modifier la personne" className="rounded-full p-2.5 hover:bg-cream-tile"><Pencil size={20} /></button>

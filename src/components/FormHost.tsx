@@ -38,6 +38,7 @@ export type FormReq =
   | { f: 'investment'; item?: Investment }
   | { f: 'investDetail'; id: string }
   | { f: 'flow'; investment: Investment; item?: InvestmentFlow; kind?: 'apport' | 'retour' }
+  | { f: 'pickInvest'; kind: 'apport' | 'retour' }
 
 interface FormsCtx { open: (r: FormReq) => void; closeAll: () => void; count: number }
 const Ctx = createContext<FormsCtx>({ open: () => undefined, closeAll: () => undefined, count: 0 })
@@ -77,6 +78,7 @@ export function FormHost({ children }: { children: ReactNode }) {
           case 'investment': return <InvestmentForm key={key} {...p} item={r.item ?? null} />
           case 'investDetail': return <InvestmentDetail key={key} {...p} id={r.id} />
           case 'flow': return <FlowForm key={key} {...p} investment={r.investment} item={r.item ?? null} kind={r.kind} />
+          case 'pickInvest': return <PickInvest key={key} onClose={close} kind={r.kind} />
         }
       })}
     </Ctx.Provider>
@@ -157,6 +159,28 @@ function PickSale({ onClose }: { onClose: () => void }) {
                 <span className="block truncate text-xs text-ink-muted">Vente du {fmtDateLong(s.sold_on)}{st.overdue > 0 ? ' · en retard' : st.nextDue ? ` · prochaine le ${fmtDateLong(st.nextDue)}` : ''}</span>
               </span>
               <span className={`tabular shrink-0 text-right text-sm font-semibold ${st.overdue > 0 ? 'text-red-600' : ''}`}>{fmt(st.remaining, cur)}</span>
+            </button>
+          )
+        })}
+      </div>
+    </Sheet>
+  )
+}
+
+/* ---------- Choisir la collaboration pour un apport / un retour ---------- */
+function PickInvest({ onClose, kind }: { onClose: () => void; kind: 'apport' | 'retour' }) {
+  const { open } = useForms()
+  const { investments, investState, contactById, cur } = useData()
+  const list = investments.filter((i) => i.status !== 'termine')
+  return (
+    <Sheet open onClose={onClose} title={kind === 'retour' ? "D'où vient l'argent ?" : 'Pour quelle collaboration ?'}>
+      {list.length === 0 && <Empty icon="🤝" text="Crée d'abord une collaboration." />}
+      <div className="-mx-2">
+        {list.map((i) => {
+          const s = investState.get(i.id)!
+          return (
+            <button key={i.id} onClick={() => { onClose(); open({ f: 'flow', investment: i, kind }) }} className="flex w-full items-center gap-3 rounded-2xl px-2 py-3 text-left active:bg-cream-tile">
+              <span className="min-w-0 flex-1"><span className="block truncate font-medium">{i.project_name}</span><span className="block truncate text-xs text-ink-muted">{contactById.get(i.contact_id)?.name} · récupéré {fmt(s.returned, cur)} / {fmt(s.invested, cur)}</span></span>
             </button>
           )
         })}

@@ -26,7 +26,8 @@ export interface Expense {
 }
 
 /* ---------- Contacts, dettes ---------- */
-export interface Contact { id: string; name: string; phone: string | null; address: string | null; note: string | null }
+export type PersonCat = 'famille' | 'ami' | 'employe_mamod' | 'partenaire' | 'autre'
+export interface Contact { id: string; name: string; phone: string | null; address: string | null; note: string | null; category: PersonCat }
 export interface DebtOwed { id: string; contact_id: string; amount: number; borrowed_on: string; due_date: string | null; received_via_id: string | null; reason: string | null }
 export interface DebtOwedRepayment { id: string; debt_id: string; amount: number; paid_on: string; payment_method_id: string | null; note: string | null }
 export interface LoanGiven { id: string; contact_id: string; amount: number; lent_on: string; due_date: string | null; paid_via_id: string | null; reason: string | null }

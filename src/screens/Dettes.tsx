@@ -8,6 +8,8 @@ import { Empty, Header } from '../components/ui'
 import { fmtDateLong } from '../components/DatePicker'
 import { useForms } from '../components/FormHost'
 import { Bar, SectionTiles } from '../components/Tiles'
+import { PERSON_CATS, PersonBadge, chip } from '../components/forms'
+import type { PersonCat } from '../lib/types'
 
 type Tab = 'on_me_doit' | 'je_dois' | 'personnes'
 
@@ -18,8 +20,9 @@ export default function DettesScreen() {
   const [tab, setTab] = useState<Tab>('on_me_doit')
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<'retard' | 'montant' | 'nom'>('retard')
+  const [cat, setCat] = useState<'tous' | PersonCat>('tous')
   const mask = (n: number) => (hidden ? '••••••' : fmt(n, cur))
-  const match = (id: string) => !q.trim() || `${contactById.get(id)?.name ?? ''} ${contactById.get(id)?.phone ?? ''}`.toLowerCase().includes(q.trim().toLowerCase())
+  const match = (id: string) => (cat === 'tous' || (contactById.get(id)?.category ?? 'autre') === cat) && (!q.trim() || `${contactById.get(id)?.name ?? ''} ${contactById.get(id)?.phone ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()))
   const sorted = (rows: ContactBalance[]) => [...rows].filter((r) => match(r.contact_id)).sort((a, b) =>
     sort === 'nom' ? (contactById.get(a.contact_id)?.name ?? '').localeCompare(contactById.get(b.contact_id)?.name ?? '')
       : sort === 'montant' ? b.total - a.total : Number(b.late) - Number(a.late) || b.total - a.total)
@@ -40,8 +43,8 @@ export default function DettesScreen() {
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70">{isOwed ? 'On me doit encore' : 'Je dois encore'}</p>
           <p className="tabular text-[2.5rem] font-bold leading-tight lg:text-5xl">{mask(remaining)}</p>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/15 p-3"><p className="text-[0.6875rem] text-white/75">{isOwed ? 'Prêté / vendu' : 'Emprunté'}</p><p className="tabular truncate font-bold">{mask(principal)}</p></div>
-            <div className="rounded-2xl bg-white/15 p-3"><p className="text-[0.6875rem] text-white/75">Remboursé</p><p className="tabular truncate font-bold">{mask(repaid)}</p></div>
+            <div className="rounded-2xl bg-white/15 p-3"><p className="text-[0.6875rem] text-white/75">{isOwed ? 'Prêté / vendu' : 'Emprunté'}</p><p className="tabular truncate text-[0.8125rem] font-bold sm:text-base">{mask(principal)}</p></div>
+            <div className="rounded-2xl bg-white/15 p-3"><p className="text-[0.6875rem] text-white/75">Remboursé</p><p className="tabular truncate text-[0.8125rem] font-bold sm:text-base">{mask(repaid)}</p></div>
             <div className="rounded-2xl bg-white/15 p-3"><p className="text-[0.6875rem] text-white/75">{isOwed ? 'Personnes' : 'Créanciers'}</p><p className="tabular font-bold">{rows.length}{isOwed && receivableLate ? <span className="ml-1 rounded-full bg-white px-1.5 text-[0.625rem] text-red-600">{receivableLate} retard</span> : null}</p></div>
           </div>
           <div className="mt-4">
@@ -56,6 +59,20 @@ export default function DettesScreen() {
             { k: 'je_dois', label: 'Je dois', Icon: HandCoins, value: mask(payableTotal) },
             { k: 'personnes', label: 'Personnes', Icon: Users, value: `${contacts.length} contact${contacts.length > 1 ? 's' : ''}` },
           ]} />
+
+        {/* Catégories de personnes, avec le montant de chacune */}
+        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
+          <button onClick={() => setCat('tous')} className={chip(cat === 'tous')}>Tout le monde</button>
+          {PERSON_CATS.map((pc) => {
+            const sum = (tab === 'je_dois' ? payables : receivables).filter((r) => (contactById.get(r.contact_id)?.category ?? 'autre') === pc.k).reduce((a, r) => a + r.total, 0)
+            const n = contacts.filter((x) => (x.category ?? 'autre') === pc.k).length
+            return (
+              <button key={pc.k} onClick={() => setCat(cat === pc.k ? 'tous' : pc.k)} className={`${chip(cat === pc.k)} flex items-center gap-1.5`}>
+                {pc.label}{tab === 'personnes' ? <span className="opacity-60">{n}</span> : sum > 0 && !hidden ? <span className="tabular text-xs opacity-70">{fmt(sum, cur)}</span> : null}
+              </button>
+            )
+          })}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-full border border-neutral-200 px-4"><Search size={18} className="text-ink-muted" />
@@ -88,7 +105,7 @@ export default function DettesScreen() {
                 return (
                   <button key={c.id} onClick={() => forms.open({ f: 'contact', id: c.id })} className="flex w-full items-center gap-3 border-b border-neutral-100 py-3 text-left">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">{c.name.charAt(0).toUpperCase()}</span>
-                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{c.name}</span><span className="tabular block truncate text-xs text-ink-muted">{c.phone ?? 'Pas de téléphone'}</span></span>
+                    <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate font-medium">{c.name}</span><PersonBadge k={c.category} /></span><span className="tabular block truncate text-xs text-ink-muted">{c.phone ?? 'Pas de téléphone'}</span></span>
                     <span className="text-right text-xs">
                       {owe > 0 && <span className="tabular block font-semibold text-emerald-700">+{fmt(owe, cur)}</span>}
                       {mine > 0 && <span className="tabular block font-semibold text-red-600">−{fmt(mine, cur)}</span>}
@@ -119,7 +136,7 @@ function PersonCard({ r, owed }: { r: ContactBalance; owed: boolean }) {
       <div className="flex items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-semibold text-white ${r.late ? 'bg-red-500' : 'bg-ink'}`}>{(c?.name ?? '?').charAt(0).toUpperCase()}</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold">{c?.name ?? 'Personne supprimée'}</span>
+          <span className="flex items-center gap-2"><span className="truncate font-semibold">{c?.name ?? 'Personne supprimée'}</span><PersonBadge k={c?.category} /></span>
           <span className="block truncate text-xs text-ink-muted">{r.count} dossier{r.count > 1 ? 's' : ''}{owed && r.sales && r.loans ? ' · ventes + prêts' : owed && r.sales ? ' · ventes à crédit' : owed ? ' · prêts' : ''}</span>
         </span>
         <span className="text-right">

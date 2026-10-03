@@ -4,7 +4,7 @@ import { Check, Search, Trash2, UserPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useData } from '../lib/data'
 import { parseAmount } from '../lib/format'
-import type { MethodType, PaymentMethod } from '../lib/types'
+import type { MethodType, PaymentMethod, PersonCat } from '../lib/types'
 
 export const chip = (on: boolean) => `shrink-0 rounded-full border px-4 py-2 text-sm transition ${on ? 'border-ink bg-ink text-white' : 'border-cream-line bg-cream-tile'}`
 
@@ -65,7 +65,28 @@ export function useMethodOf() {
   return (t: MethodType) => methods.find((m) => m.is_active && m.type === t)?.id ?? null
 }
 
-export type ContactSel = { id: string | null; name: string; phone?: string }
+export type ContactSel = { id: string | null; name: string; phone?: string; category?: PersonCat }
+
+/** Catégories de personnes. */
+export const PERSON_CATS: { k: PersonCat; label: string; short: string; cls: string }[] = [
+  { k: 'famille', label: 'Famille', short: 'Famille', cls: 'bg-rose-100 text-rose-800' },
+  { k: 'ami', label: 'Amis', short: 'Ami(e)', cls: 'bg-sky-100 text-sky-800' },
+  { k: 'employe_mamod', label: 'Employés de Mamod', short: 'Employé(e) Mamod', cls: 'bg-amber-100 text-amber-800' },
+  { k: 'partenaire', label: 'Partenaires commerciaux', short: 'Partenaire', cls: 'bg-violet-100 text-violet-800' },
+  { k: 'autre', label: 'Autres', short: 'Autre', cls: 'bg-neutral-100 text-ink-soft' },
+]
+export const catOfPerson = (k: PersonCat | null | undefined) => PERSON_CATS.find((c) => c.k === (k ?? 'autre')) ?? PERSON_CATS[4]
+export function PersonBadge({ k }: { k: PersonCat | null | undefined }) {
+  const c = catOfPerson(k)
+  return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${c.cls}`}>{c.short}</span>
+}
+export function PersonCatChips({ value, onChange }: { value: PersonCat; onChange: (k: PersonCat) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {PERSON_CATS.map((c) => <button key={c.k} type="button" onClick={() => onChange(c.k)} className={chip(value === c.k)}>{c.short}</button>)}
+    </div>
+  )
+}
 export const NO_CONTACT: ContactSel = { id: null, name: '' }
 
 /** Choix d'une personne existante, ou saisie d'un nouveau nom (créé à l'enregistrement). */
@@ -73,6 +94,7 @@ export function ContactField({ value, onChange, label = 'Personne', optional }: 
   const { contacts } = useData()
   const [q, setQ] = useState(value.id ? '' : value.name)
   const [phone, setPhone] = useState('')
+  const [cat, setCat] = useState<PersonCat>(value.category ?? 'autre')
   const sel = value.id ? contacts.find((c) => c.id === value.id) : null
   const hits = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -85,7 +107,7 @@ export function ContactField({ value, onChange, label = 'Personne', optional }: 
       <p className="label">{label}</p>
       <div className="flex items-center gap-3 rounded-2xl border border-sun-500 bg-sun-50 px-4 py-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">{sel.name.charAt(0).toUpperCase()}</span>
-        <span className="min-w-0 flex-1"><span className="block truncate font-medium">{sel.name}</span>{sel.phone && <span className="tabular block text-xs text-ink-muted">{sel.phone}</span>}</span>
+        <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate font-medium">{sel.name}</span><PersonBadge k={sel.category} /></span>{sel.phone && <span className="tabular block text-xs text-ink-muted">{sel.phone}</span>}</span>
         <button type="button" onClick={() => { onChange(NO_CONTACT); setQ('') }} className="text-sm text-[#4A56E2]">Changer</button>
       </div>
     </div>
@@ -96,7 +118,7 @@ export function ContactField({ value, onChange, label = 'Personne', optional }: 
       <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 px-4 focus-within:border-sun-500">
         <Search size={18} className="shrink-0 text-ink-muted" />
         <input id="contact-q" className="w-full bg-transparent py-3.5 outline-none" placeholder="Nom de la personne" autoComplete="off" value={q}
-          onChange={(e) => { setQ(e.target.value); onChange({ id: null, name: e.target.value, phone }) }} />
+          onChange={(e) => { setQ(e.target.value); onChange({ id: null, name: e.target.value, phone, category: cat }) }} />
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {hits.map((c) => <button key={c.id} type="button" onClick={() => { onChange({ id: c.id, name: c.name }); setQ('') }} className={chip(false)}>{c.name}</button>)}
@@ -105,7 +127,8 @@ export function ContactField({ value, onChange, label = 'Personne', optional }: 
         <div className="mt-2 space-y-2 rounded-2xl border border-dashed border-ink/25 p-3">
           <p className="flex items-center gap-2 text-sm"><UserPlus size={16} /> Nouvelle personne : <b>{q.trim()}</b></p>
           <input className="input tabular py-2.5" inputMode="tel" placeholder="Téléphone (facultatif, pour WhatsApp)" value={phone}
-            onChange={(e) => { setPhone(e.target.value); onChange({ id: null, name: q, phone: e.target.value }) }} />
+            onChange={(e) => { setPhone(e.target.value); onChange({ id: null, name: q, phone: e.target.value, category: cat }) }} />
+          <PersonCatChips value={cat} onChange={(k) => { setCat(k); onChange({ id: null, name: q, phone, category: k }) }} />
         </div>
       )}
     </div>
@@ -117,7 +140,7 @@ export async function ensureContact(sel: ContactSel): Promise<string | null> {
   if (sel.id) return sel.id
   const name = sel.name.trim()
   if (!name) return null
-  const { data, error } = await supabase.from('contacts').insert({ name, phone: sel.phone?.trim() || null }).select('id').single()
+  const { data, error } = await supabase.from('contacts').insert({ name, phone: sel.phone?.trim() || null, category: sel.category ?? 'autre' }).select('id').single()
   if (error) throw new Error(error.message)
   return (data as { id: string }).id
 }
