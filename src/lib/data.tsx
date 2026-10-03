@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { monthKey } from './format'
 import type {
-  BizExpense, Category, Contact, DebtOwed, DebtOwedRepayment, Expense, Installment, LoanGiven, LoanRepayment, PaymentMethod,
+  BeautyProvider, BeautyService, BizExpense, Category, Coach, Contact, Investment, InvestmentFlow, SportPackage, SportSession, SportVenue, DebtOwed, DebtOwedRepayment, Expense, Installment, LoanGiven, LoanRepayment, PaymentMethod,
   Product, Profile, Project, Purchase, PurchaseItem, Sale, SaleItem, SalePayment, Transfer, Withdrawal,
 } from './types'
 import { derive } from './derive'
@@ -16,11 +16,14 @@ export interface Store {
   debts: DebtOwed[]; debtRepayments: DebtOwedRepayment[]; loans: LoanGiven[]; loanRepayments: LoanRepayment[]
   products: Product[]; purchases: Purchase[]; purchaseItems: PurchaseItem[]; bizExpenses: BizExpense[]
   sales: Sale[]; saleItems: SaleItem[]; installments: Installment[]; salePayments: SalePayment[]
+  venues: SportVenue[]; coaches: Coach[]; packages: SportPackage[]; sessions: SportSession[]
+  providers: BeautyProvider[]; beauty: BeautyService[]; investments: Investment[]; flows: InvestmentFlow[]
 }
 const EMPTY: Store = {
   methods: [], categories: [], contacts: [], projects: [], expenses: [], withdrawals: [], transfers: [],
   debts: [], debtRepayments: [], loans: [], loanRepayments: [], products: [], purchases: [], purchaseItems: [], bizExpenses: [],
   sales: [], saleItems: [], installments: [], salePayments: [],
+  venues: [], coaches: [], packages: [], sessions: [], providers: [], beauty: [], investments: [], flows: [],
 }
 
 interface DataCtx extends Store, Derived {
@@ -98,7 +101,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     if (!uid) { setStore(EMPTY); setDataReady(true); return }
     const [methods, categories, contacts, projects, expenses, withdrawals, transfers, debts, debtRepayments, loans, loanRepayments,
-      products, purchases, purchaseItems, bizExpenses, sales, saleItems, installments, salePayments] = await Promise.all([
+      products, purchases, purchaseItems, bizExpenses, sales, saleItems, installments, salePayments,
+      venues, coaches, packages, sessions, providers, beauty, investments, flows] = await Promise.all([
       all<PaymentMethod>('payment_methods', 'created_at'),
       all<Category>('categories', 'created_at'),
       all<Contact>('contacts', 'name'),
@@ -118,6 +122,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       all<SaleItem>('biz_sale_items', 'id'),
       all<Installment>('biz_installments', 'due_date'),
       all<SalePayment>('biz_sale_payments', 'paid_on', false),
+      all<SportVenue>('sport_venues', 'name'),
+      all<Coach>('coaches', 'name'),
+      all<SportPackage>('sport_packages', 'start_date', false),
+      all<SportSession>('sport_sessions', 'session_date', false),
+      all<BeautyProvider>('beauty_providers', 'name'),
+      all<BeautyService>('beauty_services', 'service_date', false),
+      all<Investment>('investments', 'created_at', false),
+      all<InvestmentFlow>('investment_flows', 'flow_on', false),
     ])
     const num = <T,>(rows: T[], keys: (keyof T)[]) => rows.map((r) => { const o = { ...r }; for (const k of keys) (o as Record<string, unknown>)[k as string] = Number(o[k] ?? 0); return o })
     setStore({
@@ -128,6 +140,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       purchaseItems: num(purchaseItems, ['quantity', 'unit_cost']), bizExpenses: num(bizExpenses, ['amount']),
       sales: num(sales, ['total_amount']), saleItems: num(saleItems, ['quantity', 'unit_price', 'unit_cost']),
       installments: num(installments, ['amount']), salePayments: num(salePayments, ['amount']),
+      venues, coaches, packages: num(packages, ['price']), sessions: num(sessions, ['price']), providers, beauty: num(beauty, ['price']),
+      investments: investments.map((i) => ({ ...i, share_pct: i.share_pct == null ? null : Number(i.share_pct), expected_return: i.expected_return == null ? null : Number(i.expected_return) })),
+      flows: num(flows, ['amount']),
     })
     setDataReady(true)
   }, [uid])

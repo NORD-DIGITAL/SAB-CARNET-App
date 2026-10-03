@@ -3,7 +3,7 @@ export interface Profile { id: string; full_name: string | null; onboarded: bool
 export interface Feedback { id: string; user_id: string; sender_name: string | null; sender_email: string | null; kind: 'amelioration' | 'probleme' | 'autre'; message: string; status: 'nouveau' | 'lu' | 'traite'; created_at: string }
 
 /* ---------- Moyens de paiement ---------- */
-export type MethodType = 'especes' | 'caisse_business' | 'carte' | 'mvola' | 'orange_money' | 'airtel_money'
+export type MethodType = 'especes' | 'caisse_business' | 'banque' | 'carte' | 'mvola' | 'orange_money' | 'airtel_money'
 export interface PaymentMethod {
   id: string; type: MethodType; name: string; bank: string | null; last4: string | null; color: string | null
   track_balance: boolean; initial_balance: number; is_active: boolean; created_at: string
@@ -22,7 +22,7 @@ export interface Project { id: string; name: string; description: string | null;
 export interface Expense {
   id: string; amount: number; spent_on: string; category_id: string | null; payment_method_id: string | null
   card_operation: 'tpe' | 'en_ligne' | null; project_id: string | null; source: 'general' | 'sport' | 'beaute' | 'frais_retrait'
-  label: string | null; note: string | null; created_at: string
+  label: string | null; note: string | null; is_fixed: boolean; created_at: string
 }
 
 /* ---------- Contacts, dettes ---------- */
@@ -47,3 +47,29 @@ export interface Sale {
 export interface SaleItem { id: string; sale_id: string; product_id: string; quantity: number; unit_price: number; unit_cost: number }
 export interface Installment { id: string; sale_id: string; due_date: string; amount: number }
 export interface SalePayment { id: string; sale_id: string; amount: number; paid_on: string; payment_method_id: string | null; is_down_payment: boolean; note: string | null; created_at: string }
+
+/* ---------- Sport ---------- */
+export interface SportVenue { id: string; name: string; address: string | null; phone: string | null }
+export interface Coach { id: string; name: string; phone: string | null; specialty: string | null }
+export interface SportPackage {
+  id: string; venue_id: string | null; coach_id: string | null; kind: 'mensuel' | 'forfait_seances'; sessions_total: number | null
+  price: number; start_date: string; end_date: string | null; expense_id: string | null; created_at: string
+}
+export interface SportSession {
+  id: string; session_date: string; activity: string | null; venue_id: string | null; coach_id: string | null; package_id: string | null
+  price: number; is_paid: boolean; expense_id: string | null; note: string | null; created_at: string
+}
+
+/* ---------- Beauté ---------- */
+export interface BeautyProvider { id: string; name: string; kind: 'salon' | 'domicile' | 'independant' | null; phone: string | null; address: string | null }
+export interface BeautyService {
+  id: string; provider_id: string | null; service_date: string; service_type: string; price: number; is_paid: boolean
+  expense_id: string | null; next_appointment: string | null; note: string | null; created_at: string
+}
+
+/* ---------- Business Pro (investissements / collaborations) ---------- */
+export interface Investment {
+  id: string; contact_id: string; project_name: string; activity: string | null; agreement_type: 'pret_remboursable' | 'part_benefices'
+  share_pct: number | null; expected_return: number | null; start_date: string | null; status: 'actif' | 'termine' | 'litige'; note: string | null; created_at: string
+}
+export interface InvestmentFlow { id: string; investment_id: string; kind: 'apport' | 'retour'; amount: number; flow_on: string; payment_method_id: string | null; note: string | null; created_at: string }

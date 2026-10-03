@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowLeftRight, Banknote, HandCoins, HandHeart, Landmark, PackagePlus, Receipt, ShoppingBag, Truck, Wallet } from 'lucide-react'
+import { ArrowLeftRight, Banknote, Briefcase, CalendarCheck, Dumbbell, HandCoins, HandHeart, Landmark, PackagePlus, Receipt, ShoppingBag, Sparkles, Truck, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { BizExpense, DebtOwed, DebtOwedRepayment, Expense, LoanGiven, LoanRepayment, Product, Purchase, Sale, SalePayment, Transfer, Withdrawal } from '../lib/types'
+import type { BeautyService, BizExpense, DebtOwed, Investment, InvestmentFlow, SportPackage, SportSession, DebtOwedRepayment, Expense, LoanGiven, LoanRepayment, Product, Purchase, Sale, SalePayment, Transfer, Withdrawal } from '../lib/types'
 import { useData } from '../lib/data'
 import { fmt } from '../lib/format'
 import { fmtDateLong } from './DatePicker'
@@ -13,11 +13,13 @@ import { BizExpenseForm, ProductForm, PurchaseForm, SaleForm, SalePaymentForm } 
 import { DebtForm, RepayForm } from './DebtForms'
 import { SaleDetail } from './SaleDetail'
 import { ContactSheet } from './ContactSheet'
+import { BeautyForm, SportPackageForm, SportSessionForm } from './PersoForms'
+import { FlowForm, InvestmentDetail, InvestmentForm } from './ProForms'
 
 type DebtKind = 'je_dois' | 'on_me_doit'
 export type FormReq =
   | { f: 'quick' }
-  | { f: 'expense'; item?: Expense }
+  | { f: 'expense'; item?: Expense; preset?: Partial<Expense> }
   | { f: 'withdrawal'; item?: Withdrawal }
   | { f: 'transfer'; item?: Transfer; preset?: { from?: string; to?: string } }
   | { f: 'sale' }
@@ -30,6 +32,12 @@ export type FormReq =
   | { f: 'repay'; kind: DebtKind; parent: DebtOwed | LoanGiven; item?: DebtOwedRepayment | LoanRepayment }
   | { f: 'contact'; id: string }
   | { f: 'pickSale' }
+  | { f: 'sportSession'; item?: SportSession }
+  | { f: 'sportPackage'; item?: SportPackage }
+  | { f: 'beauty'; item?: BeautyService }
+  | { f: 'investment'; item?: Investment }
+  | { f: 'investDetail'; id: string }
+  | { f: 'flow'; investment: Investment; item?: InvestmentFlow; kind?: 'apport' | 'retour' }
 
 interface FormsCtx { open: (r: FormReq) => void; closeAll: () => void; count: number }
 const Ctx = createContext<FormsCtx>({ open: () => undefined, closeAll: () => undefined, count: 0 })
@@ -50,7 +58,7 @@ export function FormHost({ children }: { children: ReactNode }) {
         const p = { open: true, onClose: close }
         switch (r.f) {
           case 'quick': return <QuickAdd key={key} onClose={close} />
-          case 'expense': return <ExpenseForm key={key} {...p} item={r.item ?? null} />
+          case 'expense': return <ExpenseForm key={key} {...p} item={r.item ?? null} preset={r.preset} />
           case 'withdrawal': return <WithdrawalForm key={key} {...p} item={r.item ?? null} />
           case 'transfer': return <TransferForm key={key} {...p} item={r.item ?? null} preset={r.preset} />
           case 'sale': return <SaleForm key={key} {...p} onCreated={(id) => open({ f: 'saleDetail', id })} />
@@ -63,6 +71,12 @@ export function FormHost({ children }: { children: ReactNode }) {
           case 'repay': return <RepayForm key={key} {...p} kind={r.kind} parent={r.parent} item={r.item ?? null} />
           case 'contact': return <ContactSheet key={key} {...p} id={r.id} />
           case 'pickSale': return <PickSale key={key} onClose={close} />
+          case 'sportSession': return <SportSessionForm key={key} {...p} item={r.item ?? null} />
+          case 'sportPackage': return <SportPackageForm key={key} {...p} item={r.item ?? null} />
+          case 'beauty': return <BeautyForm key={key} {...p} item={r.item ?? null} />
+          case 'investment': return <InvestmentForm key={key} {...p} item={r.item ?? null} />
+          case 'investDetail': return <InvestmentDetail key={key} {...p} id={r.id} />
+          case 'flow': return <FlowForm key={key} {...p} investment={r.investment} item={r.item ?? null} kind={r.kind} />
         }
       })}
     </Ctx.Provider>
@@ -78,6 +92,9 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
     { title: 'Perso', items: [
       { label: 'Dépense', Icon: Receipt, run: go({ f: 'expense' }) },
       { label: 'Retrait DAB', Icon: Landmark, run: go({ f: 'withdrawal' }) },
+      { label: 'Dépense fixe', Icon: CalendarCheck, run: go({ f: 'expense', preset: { is_fixed: true } }) },
+      { label: 'Séance de sport', Icon: Dumbbell, run: go({ f: 'sportSession' }) },
+      { label: 'Beauté', Icon: Sparkles, run: go({ f: 'beauty' }) },
       { label: 'Virement entre caisses', Icon: ArrowLeftRight, run: go({ f: 'transfer' }) },
     ] },
     { title: 'Business', items: [
@@ -85,6 +102,7 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
       { label: 'Versement client', Icon: Banknote, run: go({ f: 'pickSale' }), hint: salesOpenCount ? `${salesOpenCount} en cours` : undefined },
       { label: 'Achat de stock', Icon: PackagePlus, run: go({ f: 'purchase' }) },
       { label: 'Frais business', Icon: Truck, run: go({ f: 'bizExpense' }) },
+      { label: 'Business Pro', Icon: Briefcase, run: go({ f: 'investment' }) },
     ] },
     { title: 'Dettes', items: [
       { label: "J'emprunte", Icon: HandCoins, run: go({ f: 'debt', kind: 'je_dois' }) },

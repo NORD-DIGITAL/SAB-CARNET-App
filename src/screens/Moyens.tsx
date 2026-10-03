@@ -9,7 +9,7 @@ import { ErrorBox, FormActions, SmallAmount, TYPE_LABEL, chip, methodLabel } fro
 import { useForms } from '../components/FormHost'
 
 const COLORS = ['#10B981', '#F97316', '#FFCC00', '#3B82F6', '#8B5CF6', '#EF4444', '#0EA5E9', '#141414']
-const TYPES: MethodType[] = ['carte', 'especes', 'caisse_business', 'mvola', 'orange_money', 'airtel_money']
+const TYPES: MethodType[] = ['carte', 'banque', 'especes', 'caisse_business', 'mvola', 'orange_money', 'airtel_money']
 
 /** Cartes bancaires, caisses (espèces perso, caisse business) et Mobile Money. */
 export function MoyensPage() {
@@ -75,7 +75,7 @@ function MethodForm({ open, item, onClose }: { open: boolean; item: PaymentMetho
     setErr(''); setType(item?.type ?? 'carte'); setName(item?.name ?? ''); setBank(item?.bank ?? ''); setLast4(item?.last4 ?? '')
     setColor(item?.color ?? COLORS[3]); setTrack(item?.track_balance ?? false); setInitial(item?.initial_balance ? item.initial_balance.toLocaleString('fr-FR') : ''); setActive(item?.is_active ?? true)
   }, [open, item])
-  const pickType = (t: MethodType) => { setType(t); setTrack(t === 'especes' || t === 'caisse_business') }
+  const pickType = (t: MethodType) => { setType(t); setTrack(t === 'especes' || t === 'caisse_business' || t === 'banque') }
 
   const save = async () => {
     if (!name.trim()) return setErr(type === 'carte' ? 'Donne un nom à la carte (ex : BNI perso).' : 'Indique un nom.')
@@ -99,7 +99,7 @@ function MethodForm({ open, item, onClose }: { open: boolean; item: PaymentMetho
     <Sheet open={open} onClose={onClose} title={item ? 'Modifier' : 'Nouvelle carte ou caisse'}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">{TYPES.map((t) => <button key={t} type="button" onClick={() => pickType(t)} className={chip(type === t)}>{TYPE_LABEL[t]}</button>)}</div>
-        <div><label className="label" htmlFor="pm-name">Nom</label><input id="pm-name" className="input" placeholder={type === 'carte' ? 'Ex : BNI perso, BOA pro' : 'Ex : Espèces perso'} value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div><label className="label" htmlFor="pm-name">Nom</label><input id="pm-name" className="input" placeholder={type === 'carte' ? 'Ex : BNI perso, BOA pro' : 'Ex : Dépense perso, Ma Banque'} value={name} onChange={(e) => setName(e.target.value)} /></div>
         {type === 'carte' && (
           <div className="grid grid-cols-[1fr,8rem] gap-3">
             <div><label className="label" htmlFor="pm-bank">Banque</label><input id="pm-bank" className="input" placeholder="Ex : BNI" value={bank} onChange={(e) => setBank(e.target.value)} /></div>

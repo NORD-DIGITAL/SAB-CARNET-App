@@ -16,7 +16,7 @@ const amountStr = (n: number) => (n ? n.toLocaleString('fr-FR') : '')
 type Kind = 'je_dois' | 'on_me_doit'
 const CFG = {
   je_dois: { table: 'debts_owed', date: 'borrowed_on', method: 'received_via_id', title: 'Nouvel emprunt', edit: "Modifier l'emprunt", who: 'Prêté par', money: "L'argent reçu dans", def: 'especes' as const },
-  on_me_doit: { table: 'loans_given', date: 'lent_on', method: 'paid_via_id', title: "Prêt d'argent", edit: 'Modifier le prêt', who: 'Prêté à', money: "L'argent est sorti de", def: 'especes' as const },
+  on_me_doit: { table: 'loans_given', date: 'lent_on', method: 'paid_via_id', title: "Prêt d'argent", edit: 'Modifier le prêt', who: 'Prêté à', money: "L'argent est sorti de", def: 'banque' as const },
 }
 
 export function DebtForm({ open, onClose, kind, item, presetContact }: { open: boolean; onClose: () => void; kind: Kind; item: DebtOwed | LoanGiven | null; presetContact?: string | null }) {
@@ -39,7 +39,7 @@ export function DebtForm({ open, onClose, kind, item, presetContact }: { open: b
     const cid = item?.contact_id ?? presetContact ?? null
     setWho(cid ? { id: cid, name: contactById.get(cid)?.name ?? '' } : NO_CONTACT)
     setAmount(amountStr(item?.amount ?? 0))
-    const m = item ? ((item as DebtOwed).received_via_id ?? (item as LoanGiven).paid_via_id ?? null) : methodOf(c.def)
+    const m = item ? ((item as DebtOwed).received_via_id ?? (item as LoanGiven).paid_via_id ?? null) : methodOf(c.def) ?? methodOf('especes')
     setMethodId(m); setNoMoney(!!item && !m)
     setDate(item ? ((item as DebtOwed).borrowed_on ?? (item as LoanGiven).lent_on) : todayISO())
     setDue(item?.due_date ?? ''); setReason(item?.reason ?? '')
@@ -108,7 +108,7 @@ export function RepayForm({ open, onClose, kind, parent, item }: {
 
   useEffect(() => {
     if (!open) return
-    setErr(''); setAmount(amountStr(item?.amount ?? 0)); setMethodId(item?.payment_method_id ?? methodOf('especes'))
+    setErr(''); setAmount(amountStr(item?.amount ?? 0)); setMethodId(item?.payment_method_id ?? (kind === 'on_me_doit' ? methodOf('banque') : null) ?? methodOf('especes'))
     setDate(item ? ((item as DebtOwedRepayment).paid_on ?? (item as LoanRepayment).received_on) : todayISO()); setNote(item?.note ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item])

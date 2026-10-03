@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, PackagePlus, Plus, Search, ShoppingBag, Truck } from 'lucide-react'
+import { AlertTriangle, Banknote, Boxes, Briefcase, ChartColumn, PackagePlus, Plus, Search, ShoppingBag, Truck } from 'lucide-react'
 import { useData } from '../lib/data'
-import { fmt } from '../lib/format'
+import { fmt, todayISO } from '../lib/format'
 import { businessMonth } from '../lib/derive'
 import { useHidden } from '../lib/prefs'
 import type { DebtStatus } from '../lib/types'
@@ -10,22 +10,91 @@ import { MonthBar, fmtDateLong } from '../components/DatePicker'
 import { useForms } from '../components/FormHost'
 import { StatusBadge } from '../components/SaleDetail'
 import { chip, methodLabel } from '../components/forms'
+import { SectionTiles, Bar } from '../components/Tiles'
+import { AGREEMENT, INV_STATUS } from '../components/ProForms'
 
-type Tab = 'ventes' | 'stock' | 'achats' | 'bilan'
-const TABS: [Tab, string][] = [['ventes', 'Ventes'], ['stock', 'Stock'], ['achats', 'Achats & frais'], ['bilan', 'Bilan']]
+type Tab = 'ventes' | 'stock' | 'achats' | 'bilan' | 'pro'
 
 export default function BusinessScreen() {
+  const d = useData()
+  const { methods, balanceOf, month, sales, saleState, salePayments, products, stockOf, investments, investState, cur } = d
+  const forms = useForms()
+  const [hidden] = useHidden()
   const [tab, setTab] = useState<Tab>('ventes')
+  const mask = (n: number) => (hidden ? '••••••' : fmt(n, cur))
+  const caisse = methods.find((m) => m.is_active && m.type === 'caisse_business')
+  const b = businessMonth(d, month)
+  const today = todayISO()
+  const open = sales.filter((s) => saleState.get(s.id)!.remaining > 0)
+  const toCollect = open.reduce((a, s) => a + saleState.get(s.id)!.remaining, 0)
+  const late = open.filter((s) => saleState.get(s.id)!.status === 'en_retard')
+  const lateAmt = late.reduce((a, s) => a + saleState.get(s.id)!.overdue, 0)
+  const todayIn = salePayments.filter((p) => p.paid_on === today).reduce((a, p) => a + p.amount, 0)
+  const todaySales = sales.filter((s) => s.sold_on === today).length
+  const empty = products.filter((p) => p.is_active && (stockOf.get(p.id) ?? 0) <= 0).length
+  const proActive = investments.filter((i) => i.status === 'actif')
+  const proOut = proActive.reduce((a, i) => a + Math.max(0, -(investState.get(i.id)?.result ?? 0)), 0)
+
   return (
-    <div className="lg:mx-auto lg:max-w-4xl">
-      <Header title="Business perso" />
-      <div className="flex gap-2 overflow-x-auto px-5 pb-3 pt-1">
-        {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={chip(tab === k)}>{l}</button>)}
+    <div className="lg:mx-auto lg:max-w-5xl 3xl:max-w-7xl">
+      <Header title="Business" />
+      <div className="space-y-4 px-5 pb-4 lg:px-8">
+        {/* Tableau de bord de la caisse business */}
+        <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0F1B3D] via-[#14264F] to-[#0B3B5C] text-white shadow-lg">
+          <div className="p-5 lg:p-6">
+            <div className="flex flex-wrap items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/60">{caisse?.name ?? 'Caisse business'}</p>
+                <p className="tabular whitespace-nowrap text-[2.25rem] font-bold leading-tight sm:text-[2.5rem] lg:text-5xl">{mask(caisse ? balanceOf.get(caisse.id) ?? 0 : 0)}</p>
+                <p className="text-sm text-white/60">{b.nbVentes} vente{b.nbVentes > 1 ? 's' : ''} ce mois · bénéfice {mask(b.benefice)}</p>
+              </div>
+              <button onClick={() => setTab('ventes')} className="w-full rounded-2xl px-4 py-3 text-left text-ink transition active:scale-[.98] sm:w-auto" style={{ background: 'var(--accent)' }}>
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-wider opacity-80">À encaisser</p>
+                <p className="tabular whitespace-nowrap text-2xl font-bold">{mask(toCollect)}</p>
+                <p className="text-xs font-medium opacity-80">{open.length} client{open.length > 1 ? 's' : ''}{late.length ? ` · ${late.length} en retard` : ''}</p>
+              </button>
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2 lg:gap-3">
+              {[
+                { l: "Chiffre d'affaires", v: mask(b.ca), s: 'ce mois' },
+                { l: 'Encaissé', v: mask(b.encaisse), s: 'ce mois' },
+                { l: 'En retard', v: mask(lateAmt), s: `${late.length} vente${late.length > 1 ? 's' : ''}`, red: lateAmt > 0 },
+              ].map((x) => (
+                <div key={x.l} className={`rounded-2xl p-3 ${x.red ? 'bg-red-500/25' : 'bg-white/10'}`}>
+                  <p className="truncate text-[0.6875rem] text-white/70">{x.l}</p>
+                  <p className="tabular truncate text-sm font-bold sm:text-base lg:text-lg">{x.v}</p>
+                  <p className="text-[0.6875rem] text-white/50">{x.s}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+              <button onClick={() => forms.open({ f: 'sale' })} className="flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl py-3.5 text-lg font-semibold text-ink active:scale-[.98]" style={{ background: 'var(--accent)' }}><ShoppingBag size={22} /> Nouvelle vente</button>
+              <div className="grid grid-cols-3 gap-2 sm:contents">
+                {([['pickSale', 'Versement', Banknote], ['purchase', 'Réappro', PackagePlus], ['bizExpense', 'Frais', Truck]] as const).map(([f, l, I]) => (
+                  <button key={f} onClick={() => forms.open({ f })} title={l} className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 py-3 text-sm hover:bg-white/20 sm:w-14 sm:py-0"><I size={20} /><span className="sm:sr-only">{l}</span></button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-white/10 bg-black/15 px-5 py-3 text-sm text-white/70 lg:px-6">
+            <span>Aujourd'hui</span><span className="tabular font-semibold text-white">{todaySales} vente{todaySales > 1 ? 's' : ''} · {mask(todayIn)} encaissés</span>
+          </div>
+        </section>
+
+        <SectionTiles value={tab} onChange={setTab}
+          items={[
+            { k: 'ventes', label: 'Ventes', Icon: ShoppingBag, value: `${open.length} à encaisser`, badge: late.length ? `${late.length} retard` : undefined, alert: late.length > 0 },
+            { k: 'stock', label: 'Stock', Icon: Boxes, value: `${products.filter((p) => p.is_active).length} produits`, badge: empty ? `${empty} vide${empty > 1 ? 's' : ''}` : undefined, alert: empty > 0 },
+            { k: 'achats', label: 'Achats & frais', Icon: Truck, value: mask(b.achats + b.frais) },
+            { k: 'bilan', label: 'Bilan', Icon: ChartColumn, value: mask(b.benefice) },
+            { k: 'pro', label: 'Business Pro', Icon: Briefcase, value: proActive.length ? `${proActive.length} actif${proActive.length > 1 ? 's' : ''}` : 'Collaborations', badge: proOut ? mask(proOut) : undefined },
+          ]} />
       </div>
       {tab === 'ventes' && <Ventes />}
       {tab === 'stock' && <Stock />}
       {tab === 'achats' && <Achats />}
       {tab === 'bilan' && <Bilan />}
+      {tab === 'pro' && <Pro />}
     </div>
   )
 }
@@ -50,8 +119,7 @@ function Ventes() {
   const counts = { en_cours: sales.filter((x) => saleState.get(x.id)!.remaining > 0).length, en_retard: sales.filter((x) => saleState.get(x.id)!.status === 'en_retard').length }
 
   return (
-    <div className="space-y-3 px-5 pb-10">
-      <button onClick={() => forms.open({ f: 'sale' })} className="btn-primary w-full"><ShoppingBag size={20} /> Nouvelle vente</button>
+    <div className="space-y-3 px-5 pb-10 lg:px-8">
       <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
         <button onClick={() => setF('en_cours')} className={chip(f === 'en_cours')}>À encaisser ({counts.en_cours})</button>
         <button onClick={() => setF('en_retard')} className={chip(f === 'en_retard')}>En retard ({counts.en_retard})</button>
@@ -63,6 +131,7 @@ function Ventes() {
         <input className="w-full bg-transparent py-2.5 outline-none" placeholder="Client ou produit" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher une vente" />
       </div>
       {list.length === 0 && <Empty icon="🛍️" text={f === 'en_retard' ? 'Aucun client en retard. 👏' : 'Aucune vente ici.'} />}
+      <div className="grid gap-2 xl:grid-cols-2 3xl:grid-cols-3">
       {list.map((s) => {
         const st = saleState.get(s.id)!
         const what = saleItems.filter((i) => i.sale_id === s.id).map((i) => productById.get(i.product_id)?.name).filter(Boolean).join(', ')
@@ -81,6 +150,7 @@ function Ventes() {
           </button>
         )
       })}
+      </div>
     </div>
   )
 }
@@ -98,7 +168,7 @@ function Stock() {
   const empty = products.filter((p) => p.is_active && (stockOf.get(p.id) ?? 0) <= 0).length
 
   return (
-    <div className="space-y-3 px-5 pb-10">
+    <div className="space-y-3 px-5 pb-10 lg:px-8">
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-cream-tile p-3"><p className="text-xs text-ink-muted">Valeur du stock (prix d'achat)</p><p className="tabular font-semibold">{fmt(value, cur)}</p></div>
         <div className={`rounded-2xl p-3 ${empty ? 'bg-red-50' : 'bg-cream-tile'}`}><p className={`text-xs ${empty ? 'text-red-700' : 'text-ink-muted'}`}>Produits épuisés</p><p className="tabular font-semibold">{empty}</p></div>
@@ -143,7 +213,7 @@ function Achats() {
   const p = purchases.filter((x) => x.purchased_on.startsWith(month))
   const e = bizExpenses.filter((x) => x.spent_on.startsWith(month))
   return (
-    <div className="space-y-4 px-5 pb-10">
+    <div className="space-y-4 px-5 pb-10 lg:px-8">
       <MonthBar />
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => forms.open({ f: 'purchase' })} className="btn-primary"><PackagePlus size={20} /> Achat</button>
@@ -190,7 +260,7 @@ function Bilan() {
     </div>
   )
   return (
-    <div className="space-y-4 px-5 pb-10">
+    <div className="space-y-4 px-5 pb-10 lg:px-8">
       <MonthBar />
       <div className="rounded-3xl border border-cream-line bg-cream-tile px-4 py-2 divide-y divide-cream-line">
         <Line l={`Chiffre d'affaires (${b.nbVentes} vente${b.nbVentes > 1 ? 's' : ''})`} v={b.ca} />
@@ -208,6 +278,45 @@ function Bilan() {
           <AlertTriangle size={20} className="shrink-0" />
           <div className="flex-1"><p className="text-xs">Les clients me doivent encore (toutes ventes)</p><p className="tabular font-semibold">{fmt(clients, cur)}</p></div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- Business Pro : investissements et collaborations ---------- */
+function Pro() {
+  const { investments, investState, contactById, cur } = useData()
+  const forms = useForms()
+  const [hidden] = useHidden()
+  const mask = (n: number) => (hidden ? '••••' : fmt(n, cur))
+  const totals = investments.reduce((a, i) => { const s = investState.get(i.id)!; return { inv: a.inv + s.invested, ret: a.ret + s.returned } }, { inv: 0, ret: 0 })
+  return (
+    <div className="space-y-4 px-5 pb-10 lg:px-8">
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-2xl bg-cream-tile p-3"><p className="text-xs text-ink-muted">Investi</p><p className="tabular text-sm font-semibold">{mask(totals.inv)}</p></div>
+        <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-xs text-emerald-700">Récupéré</p><p className="tabular text-sm font-semibold">{mask(totals.ret)}</p></div>
+        <div className={`rounded-2xl p-3 ${totals.ret - totals.inv >= 0 ? 'bg-emerald-100' : 'bg-sun-100'}`}><p className="text-xs">{totals.ret - totals.inv >= 0 ? 'Gain' : 'Encore dehors'}</p><p className="tabular text-sm font-semibold">{mask(Math.abs(totals.ret - totals.inv))}</p></div>
+      </div>
+      <button onClick={() => forms.open({ f: 'investment' })} className="btn-primary w-full"><Plus size={20} /> Nouvelle collaboration</button>
+      {investments.length === 0 && <Empty icon="🤝" text="Note ici l'argent que tu mets dans le business d'un partenaire (salon de coiffure, boutique…) et ce que tu récupères." />}
+      <div className="grid gap-3 lg:grid-cols-2 3xl:grid-cols-3">
+        {investments.map((i) => {
+          const st = investState.get(i.id)!
+          const target = i.agreement_type === 'pret_remboursable' ? i.expected_return ?? st.invested : st.invested
+          const pct = target ? (st.returned / target) * 100 : 0
+          const [label, cls] = INV_STATUS[i.status]
+          return (
+            <button key={i.id} onClick={() => forms.open({ f: 'investDetail', id: i.id })} className="rounded-2xl border border-cream-line bg-cream-tile p-4 text-left transition hover:border-sun-300">
+              <div className="flex items-start gap-2">
+                <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{i.project_name}</span>
+                  <span className="block truncate text-xs text-ink-muted">{[contactById.get(i.contact_id)?.name, i.activity, AGREEMENT[i.agreement_type] + (i.share_pct != null ? ` ${i.share_pct} %` : '')].filter(Boolean).join(' · ')}</span></span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
+              </div>
+              <div className="mt-3 flex justify-between text-sm"><span>Investi <b className="tabular">{mask(st.invested)}</b></span><span className="text-emerald-700">Récupéré <b className="tabular">{mask(st.returned)}</b></span></div>
+              <div className="mt-2"><Bar pct={pct} color="bg-emerald-500" /></div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

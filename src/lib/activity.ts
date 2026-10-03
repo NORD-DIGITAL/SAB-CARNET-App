@@ -54,5 +54,11 @@ export function buildActivity(d: ReturnType<typeof useData>): Activity[] {
     add({ key: `lr${r.id}`, date: r.received_on, created: '', scope: 'dettes', tone: 'in', title: `${who(l?.contact_id)} me rembourse`, icon: 'prêt',
       sub: [m(r.payment_method_id), r.note], amount: r.amount, methods: [r.payment_method_id ?? ''], open: l ? { f: 'repay', kind: 'on_me_doit', parent: l, item: r } : { f: 'quick' } })
   }
+  for (const f of d.flows) {
+    const inv = d.investments.find((i) => i.id === f.investment_id)
+    add({ key: `f${f.id}`, date: f.flow_on, created: f.created_at, scope: 'business', tone: f.kind === 'retour' ? 'in' : 'out', icon: 'business',
+      title: `${f.kind === 'retour' ? 'Retour' : 'Apport'} · ${inv?.project_name ?? 'Business Pro'}`, sub: [m(f.payment_method_id), f.note],
+      amount: f.amount, methods: [f.payment_method_id ?? ''], open: inv ? { f: 'flow', investment: inv, item: f } : { f: 'quick' } })
+  }
   return out.sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : a.created < b.created ? 1 : -1))
 }

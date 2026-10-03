@@ -242,8 +242,24 @@ export function SaleForm({ open, onClose, onCreated }: { open: boolean; onClose:
           <MethodChips label="Encaissé dans" value={methodId} onChange={setMethodId} />
         ) : (
           <div className="space-y-4">
-            <div><label className="label" htmlFor="sale-down">Acompte reçu aujourd'hui <span className="text-xs">(facultatif)</span></label><SmallAmount id="sale-down" value={down} onChange={setDown} /></div>
-            {parseAmount(down) > 0 && <MethodChips label="Acompte encaissé dans" value={methodId} onChange={setMethodId} />}
+            <div className="space-y-3 rounded-2xl border-2 border-sun-400 bg-sun-50 p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <label className="font-semibold" htmlFor="sale-down">Acompte</label>
+                <span className="text-xs text-ink-muted">payé le jour de la vente</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[0, 10, 20, 30, 50].map((pc) => {
+                  const v = pc ? Math.round((total * pc) / 100 / 1000) * 1000 : 0
+                  return <button key={pc} type="button" onClick={() => setDown(v ? v.toLocaleString('fr-FR') : '')} className={chip(parseAmount(down) === v && (pc > 0 || !down))}>{pc ? `${pc} %` : 'Sans acompte'}</button>
+                })}
+              </div>
+              <SmallAmount id="sale-down" value={down} onChange={setDown} placeholder="Montant de l'acompte" />
+              {total > 0 && <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-xl bg-white px-3 py-2"><p className="text-xs text-ink-muted">Acompte</p><p className="tabular font-semibold text-emerald-700">{fmt(downAmt, cur)}</p></div>
+                <div className="rounded-xl bg-white px-3 py-2"><p className="text-xs text-ink-muted">Reste à échelonner</p><p className="tabular font-semibold">{fmt(Math.max(0, total - downAmt), cur)}</p></div>
+              </div>}
+              {parseAmount(down) > 0 && <MethodChips label="Acompte encaissé dans" value={methodId} onChange={setMethodId} />}
+            </div>
             <div>
               <p className="label">Nombre d'échéances</p>
               <div className="flex flex-wrap gap-2">{[2, 3, 4, 5, 6, 8, 10, 12].map((k) => <button key={k} type="button" onClick={() => setN(k)} className={chip(n === k)}>{k}</button>)}</div>

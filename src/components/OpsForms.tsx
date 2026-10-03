@@ -13,7 +13,7 @@ const amountStr = (n: number) => (n ? n.toLocaleString('fr-FR') : '')
 /* =====================================================================
    Dépense perso
    ===================================================================== */
-export function ExpenseForm({ open, onClose, item }: { open: boolean; onClose: () => void; item: Expense | null }) {
+export function ExpenseForm({ open, onClose, item, preset }: { open: boolean; onClose: () => void; item: Expense | null; preset?: Partial<Expense> }) {
   const { categories, methodById, reload } = useData()
   const methodOf = useMethodOf()
   const [amount, setAmount] = useState('')
@@ -22,15 +22,17 @@ export function ExpenseForm({ open, onClose, item }: { open: boolean; onClose: (
   const [cardOp, setCardOp] = useState<'tpe' | 'en_ligne'>('tpe')
   const [date, setDate] = useState(todayISO())
   const [label, setLabel] = useState('')
+  const [fixed, setFixed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
   useEffect(() => {
     if (!open) return
     setErr('')
-    setAmount(amountStr(item?.amount ?? 0)); setCatId(item?.category_id ?? null)
-    setMethodId(item ? item.payment_method_id : methodOf('especes')); setCardOp(item?.card_operation ?? 'tpe')
-    setDate(item?.spent_on ?? todayISO()); setLabel(item?.label ?? item?.note ?? '')
+    const src = item ?? preset
+    setAmount(amountStr(src?.amount ?? 0)); setCatId(src?.category_id ?? null)
+    setMethodId(src?.payment_method_id ?? methodOf('especes')); setCardOp(src?.card_operation ?? 'tpe')
+    setDate(item?.spent_on ?? todayISO()); setLabel(src?.label ?? src?.note ?? ''); setFixed(src?.is_fixed ?? false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item])
 
@@ -42,7 +44,7 @@ export function ExpenseForm({ open, onClose, item }: { open: boolean; onClose: (
     if (!amt) return setErr('Indique un montant.')
     if (!methodId) return setErr('Choisis avec quoi tu as payé.')
     setBusy(true); setErr('')
-    const row = { amount: amt, category_id: catId, payment_method_id: methodId, card_operation: isCard ? cardOp : null, spent_on: date, label: label.trim() || null }
+    const row = { amount: amt, category_id: catId, payment_method_id: methodId, card_operation: isCard ? cardOp : null, spent_on: date, label: label.trim() || null, is_fixed: fixed }
     const { error } = item ? await supabase.from('expenses').update(row).eq('id', item.id) : await supabase.from('expenses').insert(row)
     setBusy(false)
     if (error) return setErr(error.message)
@@ -51,7 +53,7 @@ export function ExpenseForm({ open, onClose, item }: { open: boolean; onClose: (
   const remove = async () => { setBusy(true); await supabase.from('expenses').delete().eq('id', item!.id); setBusy(false); await reload(); onClose() }
 
   return (
-    <Sheet open={open} onClose={onClose} title={item ? 'Modifier la dépense' : 'Nouvelle dépense'}>
+    <Sheet open={open} onClose={onClose} title={item ? 'Modifier la dépense' : fixed ? 'Dépense fixe' : 'Nouvelle dépense'}>
       <div className="space-y-5">
         <AmountField value={amount} onChange={setAmount} autoFocus={!item} />
         <div>
@@ -68,6 +70,10 @@ export function ExpenseForm({ open, onClose, item }: { open: boolean; onClose: (
         </div>
         <MethodChips label="Payé avec" value={methodId} onChange={setMethodId} />
         {isCard && <Segmented value={cardOp} onChange={setCardOp} options={[['tpe', 'Paiement TPE'], ['en_ligne', 'En ligne']]} />}
+        <label className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${fixed ? 'border-purple-400 bg-purple-50' : 'border-cream-line bg-cream-tile'}`}>
+          <input type="checkbox" className="h-5 w-5 accent-purple-600" checked={fixed} onChange={(e) => setFixed(e.target.checked)} />
+          <span><b>Dépense fixe</b><span className="block text-xs text-ink-muted">Loyer, Jirama, écolage, abonnements… revient chaque mois</span></span>
+        </label>
         <div className="grid grid-cols-[auto,1fr] items-center gap-3">
           <label className="label mb-0" htmlFor="ex-date">Date</label>
           <DateField id="ex-date" value={date} onChange={setDate} className="py-3" />

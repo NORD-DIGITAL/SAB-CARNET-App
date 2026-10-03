@@ -14,8 +14,17 @@ Déclinaison client de **Budget.Go.Family** (même socle : inscription, empreint
 - **Historique** : toutes les opérations, filtres, export Excel (CSV).
 - **Compte** : cartes (nom + 4 derniers chiffres), caisses, catégories, abonnement Go Code, admin.
 
-Prévu ensuite : Sport (établissements, coachs indépendants), Beauté, Projets, Investissements/collaborations
-(les tables existent déjà dans la base).
+Version 1.1 :
+- **Accueil** en 4 cases : Dépense perso, Caisse business, **Ma Banque** (d'où sortent les prêts), **Dépense fixe** du mois.
+- **Dépense perso** : dépenses par catégorie, dépenses fixes (rappel de celles du mois dernier pas encore notées),
+  **Sport** (établissements, coachs indépendants, forfaits/abonnements, séances payées ou à payer), **Beauté** (prestataires, prochain RDV).
+  Chaque paiement sport/beauté crée automatiquement la dépense correspondante.
+- **Business** : tableau de bord de la caisse, sections en petites cases, acompte mis en avant dans les ventes échelonnées,
+  **Business Pro** (collaborations/investissements : apports, retours, gain).
+- **Dettes** : prêté / remboursé / reste dès l'ouverture, carte par personne avec progression, fiche avec historique et solde.
+- Thème **Océan** par défaut ; mise en page élargie pour les écrans ≥ 1920 px.
+
+Prévu ensuite : Projets.
 
 ## Base de données (Supabase, projet « SAB-CARNET-App »)
 

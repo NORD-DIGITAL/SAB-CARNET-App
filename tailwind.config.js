@@ -11,6 +11,7 @@ export default {
         cream: { DEFAULT: 'rgb(var(--cream) / <alpha-value>)', tile: 'rgb(var(--cream-tile) / <alpha-value>)', line: 'rgb(var(--cream-line) / <alpha-value>)' },
       },
       fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
+      screens: { '3xl': '1900px' },
     },
   },
   plugins: [],

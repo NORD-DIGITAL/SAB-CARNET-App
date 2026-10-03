@@ -9,7 +9,7 @@ import type { MethodType, PaymentMethod } from '../lib/types'
 export const chip = (on: boolean) => `shrink-0 rounded-full border px-4 py-2 text-sm transition ${on ? 'border-ink bg-ink text-white' : 'border-cream-line bg-cream-tile'}`
 
 export const TYPE_LABEL: Record<MethodType, string> = {
-  especes: 'Espèces', caisse_business: 'Caisse business', carte: 'Carte bancaire', mvola: 'MVola', orange_money: 'Orange Money', airtel_money: 'Airtel Money',
+  especes: 'Dépense perso', caisse_business: 'Caisse business', banque: 'Banque', carte: 'Carte bancaire', mvola: 'MVola', orange_money: 'Orange Money', airtel_money: 'Airtel Money',
 }
 /** « BNI perso ••4521 » pour une carte, sinon le nom seul. */
 export const methodLabel = (m: PaymentMethod | undefined | null) => (m ? (m.type === 'carte' && m.last4 ? `${m.name} ••${m.last4}` : m.name) : '')

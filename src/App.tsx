@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Ban, Briefcase, CreditCard, Download, Fingerprint, HandCoins, History, Home, Inbox, Lightbulb, LogOut, Plus, RefreshCw, UserRound, Users, Wallet } from 'lucide-react'
+import { Ban, Briefcase, CreditCard, Receipt, Download, Fingerprint, HandCoins, History, Home, Inbox, Lightbulb, LogOut, Plus, RefreshCw, UserRound, Users, Wallet } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { DataProvider, useData } from './lib/data'
 import { userInfo } from './lib/prefs'
@@ -22,8 +22,10 @@ import HistoriqueScreen from './screens/Historique'
 import CompteScreen, { CategoriesPage, ProfilePage, ProfileSetup, SUB_TITLES } from './screens/Compte'
 import type { SubPage } from './screens/Compte'
 import { MoyensPage } from './screens/Moyens'
+import PersoScreen from './screens/Perso'
+import type { PersoSection } from './screens/Perso'
 
-type Tab = 'accueil' | 'business' | 'dettes' | 'historique' | 'compte'
+type Tab = 'accueil' | 'perso' | 'business' | 'dettes' | 'historique' | 'compte'
 const AUTO_OUT_KEY = 'bf-auto-logout'
 
 /* ---------- Écran verrouillé (empreinte / visage) ---------- */
@@ -95,6 +97,7 @@ function Shell() {
   const cfg = useAppConfig()
   const [tab, setTab] = useState<Tab>('accueil')
   const [sub, setSub] = useState<SubPage | null>(null)
+  const [persoSection, setPersoSection] = useState<PersoSection>('depenses')
   const [locked, setLocked] = useState(false)
   const [askBio, setAskBio] = useState(false)
   const [bioMsg, setBioMsg] = useState('')
@@ -183,7 +186,7 @@ function Shell() {
   )
 
   return (
-    <div className="min-h-full bg-white lg:bg-cream lg:pl-72">
+    <div className="min-h-full bg-white lg:bg-cream lg:pl-72 3xl:pl-80">
       {(pull > 0 || spinning) && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center" style={{ transform: `translateY(${Math.max(pull, spinning ? 60 : 0) - 20}px)` }}>
           <div className="pt-safe"><div className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg">
@@ -193,14 +196,16 @@ function Shell() {
       )}
 
       {/* Barre latérale (ordinateur) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col overflow-y-auto bg-ink p-5 text-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 3xl:w-80 flex-col overflow-y-auto bg-ink p-5 text-white lg:flex">
         <div className="mb-8 flex items-center gap-3 px-2">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sun-500 text-ink"><Wallet size={24} /></div>
           <Wordmark className="text-xl" dark />
         </div>
         <button onClick={() => forms.open({ f: 'quick' })} className="btn-primary mb-6 w-full"><Plus size={20} /> Nouvelle opération</button>
         <nav className="space-y-1">
-          {tabs.slice(0, 3).map((t) => <SideLink key={t.k} active={!sub && tab === t.k} onClick={() => goTab(t.k)} Icon={t.Icon} label={t.label} />)}
+          <SideLink active={!sub && tab === 'accueil'} onClick={() => goTab('accueil')} Icon={Home} label="Accueil" />
+          <SideLink active={!sub && tab === 'perso'} onClick={() => goTab('perso')} Icon={Receipt} label="Dépense perso" />
+          {tabs.slice(1, 3).map((t) => <SideLink key={t.k} active={!sub && tab === t.k} onClick={() => goTab(t.k)} Icon={t.Icon} label={t.label} />)}
           <SideLink active={!sub && tab === 'historique'} onClick={() => goTab('historique')} Icon={History} label="Historique" />
           <SideLink active={sub === 'moyens'} onClick={() => openSub('moyens')} Icon={CreditCard} label="Cartes et caisses" />
           <SideLink active={!sub && tab === 'compte'} onClick={() => goTab('compte')} Icon={UserRound} label="Compte" />
@@ -221,7 +226,7 @@ function Shell() {
 
       <main className="mx-auto min-h-full max-w-lg bg-white pb-28 lg:mx-6 lg:my-6 lg:max-w-none lg:overflow-hidden lg:rounded-[32px] lg:pb-10 lg:shadow-sm 2xl:mx-10">
         {sub ? (
-          <div className="lg:mx-auto lg:max-w-3xl">
+          <div className="lg:mx-auto lg:max-w-3xl 3xl:max-w-5xl">
             <Header title={SUB_TITLES[sub]} onBack={closeSub} />
             {sub === 'profil' && <ProfilePage />}
             {sub === 'moyens' && <MoyensPage />}
@@ -238,7 +243,8 @@ function Shell() {
                 <Download size={20} className="shrink-0 text-sun-500" /><span className="flex-1"><b>Nouvelle version disponible.</b> Touche ici pour la télécharger puis l'installer.</span>
               </button>
             )}
-            {tab === 'accueil' && <HomeScreen openSub={openSub} goTab={setTab} onRefresh={refreshAll} />}
+            {tab === 'accueil' && <HomeScreen openSub={openSub} goTab={(t, sec) => { if (sec) setPersoSection(sec); setTab(t) }} onRefresh={refreshAll} />}
+            {tab === 'perso' && <PersoScreen section={persoSection} setSection={setPersoSection} onBack={() => setTab('accueil')} />}
             {tab === 'business' && <BusinessScreen />}
             {tab === 'dettes' && <DettesScreen />}
             {tab === 'historique' && <HistoriqueScreen />}

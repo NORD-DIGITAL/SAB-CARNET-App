@@ -13,7 +13,7 @@ const key = (uid: string) => `bf-theme-${uid}`
 const listeners = new Set<() => void>()
 export function getUserTheme(uid: string | null): ThemeId {
   try { const v = uid ? localStorage.getItem(key(uid)) : null; if (v && THEMES.some((t) => t.id === v)) return v as ThemeId } catch { /* ignore */ }
-  return 'menthe'
+  return 'ocean'
 }
 export function setUserTheme(uid: string, t: ThemeId) {
   try { localStorage.setItem(key(uid), t) } catch { /* ignore */ }

@@ -1,20 +1,22 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeftRight, Banknote, ChevronRight, Eye, EyeOff, HandCoins, History, Landmark, Mail, PackagePlus, Receipt, RefreshCw, ShoppingBag } from 'lucide-react'
+import { Banknote, CalendarClock, ChevronRight, Dumbbell, Eye, EyeOff, HandHeart, History, Landmark, Mail, Receipt, RefreshCw, ShoppingBag, Sparkles } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useData } from '../lib/data'
 import { addMonths, fmt, monthLabel } from '../lib/format'
 import { useHidden, userInfo } from '../lib/prefs'
-import { personalExpenses } from '../lib/derive'
+import { fixedExpenses, personalExpenses } from '../lib/derive'
 import { buildActivity } from '../lib/activity'
 import { useBadge } from '../lib/inbox'
 import { ByNord, Empty } from '../components/ui'
-import { MonthBar } from '../components/DatePicker'
+import { MonthBar, fmtDateLong } from '../components/DatePicker'
 import { useForms } from '../components/FormHost'
 import { ActivityList } from '../components/ActivityList'
-import { methodLabel } from '../components/forms'
 import type { SubPage } from './Compte'
+import type { PersoSection } from './Perso'
 
-export default function HomeScreen({ openSub, goTab, onRefresh }: { openSub: (p: SubPage) => void; goTab: (t: 'dettes' | 'business' | 'historique') => void; onRefresh: () => Promise<void> }) {
+export type GoTab = (t: 'dettes' | 'business' | 'historique' | 'perso', section?: PersoSection) => void
+
+export default function HomeScreen({ openSub, goTab, onRefresh }: { openSub: (p: SubPage) => void; goTab: GoTab; onRefresh: () => Promise<void> }) {
   const d = useData()
   const { session, profile, methods, balanceOf, month, receivableTotal, receivableLate, payableTotal, cur } = d
   const forms = useForms()
@@ -24,25 +26,34 @@ export default function HomeScreen({ openSub, goTab, onRefresh }: { openSub: (p:
   const inboxN = useBadge()
   const mask = (n: number) => (hidden ? '••••••' : fmt(n, cur))
 
-  const caisses = methods.filter((m) => m.is_active && m.track_balance)
   const spent = personalExpenses(d, month).reduce((a, e) => a + e.amount, 0)
   const spentPrev = personalExpenses(d, addMonths(month, -1)).reduce((a, e) => a + e.amount, 0)
   const delta = spentPrev ? Math.round(((spent - spentPrev) / spentPrev) * 100) : null
+  const fixed = fixedExpenses(d, month).reduce((a, e) => a + e.amount, 0)
   const activity = useMemo(() => buildActivity(d).filter((a) => a.date.startsWith(month)), [d, month])
+  const first = (t: string) => methods.find((m) => m.is_active && m.type === t)
+
+  // Les 4 cases : Dépense perso, Caisse business, Ma Banque, Dépense fixe
+  const boxes: { key: string; label: string; color: string; value: number; sub?: string; run: () => void }[] = []
+  const perso = first('especes'), biz = first('caisse_business'), bank = first('banque')
+  if (perso) boxes.push({ key: 'perso', label: perso.name, color: perso.color ?? '#10B981', value: balanceOf.get(perso.id) ?? 0, run: () => goTab('perso') })
+  if (biz) boxes.push({ key: 'biz', label: biz.name, color: biz.color ?? '#F97316', value: balanceOf.get(biz.id) ?? 0, run: () => goTab('business') })
+  if (bank) boxes.push({ key: 'bank', label: bank.name, color: bank.color ?? '#0EA5E9', value: balanceOf.get(bank.id) ?? 0, run: () => openSub('moyens') })
+  boxes.push({ key: 'fixe', label: 'Dépense fixe', color: '#A855F7', value: fixed, run: () => goTab('perso', 'fixes') })
 
   const shortcuts: { label: string; Icon: LucideIcon; run: () => void }[] = [
     { label: 'Dépense', Icon: Receipt, run: () => forms.open({ f: 'expense' }) },
     { label: 'Retrait DAB', Icon: Landmark, run: () => forms.open({ f: 'withdrawal' }) },
     { label: 'Vente', Icon: ShoppingBag, run: () => forms.open({ f: 'sale' }) },
     { label: 'Versement client', Icon: Banknote, run: () => forms.open({ f: 'pickSale' }) },
-    { label: 'Achat de stock', Icon: PackagePlus, run: () => forms.open({ f: 'purchase' }) },
-    { label: 'Virement', Icon: ArrowLeftRight, run: () => forms.open({ f: 'transfer' }) },
-    { label: "J'emprunte", Icon: HandCoins, run: () => forms.open({ f: 'debt', kind: 'je_dois' }) },
+    { label: 'Je prête', Icon: HandHeart, run: () => forms.open({ f: 'debt', kind: 'on_me_doit' }) },
+    { label: 'Sport', Icon: Dumbbell, run: () => goTab('perso', 'sport') },
+    { label: 'Beauté', Icon: Sparkles, run: () => goTab('perso', 'beaute') },
     { label: 'Historique', Icon: History, run: () => goTab('historique') },
   ]
 
   return (
-    <div className="bg-white lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-2 lg:p-4 xl:grid-cols-[460px_1fr]">
+    <div className="bg-white lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-2 lg:p-4 xl:grid-cols-[460px_1fr] 2xl:grid-cols-[460px_1fr_380px] 2xl:gap-4 3xl:grid-cols-[520px_1fr_440px] 3xl:gap-6 3xl:p-6">
       <div className="hero pb-8 lg:sticky lg:top-4 lg:overflow-hidden lg:rounded-[28px] lg:pb-2">
         <header className="pt-safe px-5">
           <div className="flex items-center gap-3 py-4">
@@ -66,19 +77,13 @@ export default function HomeScreen({ openSub, goTab, onRefresh }: { openSub: (p:
           </div>
         </header>
 
-        {/* Caisses suivies : espèces perso, caisse business */}
-        <section className="px-5">
-          <div className={`grid gap-3 ${caisses.length > 1 ? 'grid-cols-2' : ''}`}>
-            {caisses.map((m) => {
-              const b = balanceOf.get(m.id) ?? 0
-              return (
-                <button key={m.id} onClick={() => openSub('moyens')} className="hero-card rounded-2xl bg-white/60 px-4 py-3 text-left">
-                  <p className="hero-muted flex items-center gap-1.5 text-xs"><span className="h-2 w-2 rounded-full" style={{ background: m.color ?? '#999' }} />{methodLabel(m)}</p>
-                  <p className={`tabular mt-1 text-xl font-semibold ${!hidden && b < 0 ? 'low-balance' : ''}`}>{mask(b)}</p>
-                </button>
-              )
-            })}
-          </div>
+        <section className="grid grid-cols-2 gap-3 px-5">
+          {boxes.map((b) => (
+            <button key={b.key} onClick={b.run} className="hero-card rounded-2xl bg-white/60 px-4 py-3 text-left transition active:scale-[.98]">
+              <p className="hero-muted flex items-center gap-1.5 truncate text-xs"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: b.color }} />{b.label}{b.sub && <span className="opacity-80"> · {b.sub}</span>}</p>
+              <p className={`tabular mt-1 truncate text-xl font-semibold ${!hidden && b.value < 0 && b.key !== 'fixe' ? 'low-balance' : ''}`}>{mask(b.value)}</p>
+            </button>
+          ))}
         </section>
 
         <section className="px-5 pt-5 text-center">
@@ -116,8 +121,47 @@ export default function HomeScreen({ openSub, goTab, onRefresh }: { openSub: (p:
           <h2 className="section-title flex-1">Opérations du mois</h2>
           <button onClick={() => goTab('historique')} className="flex items-center gap-1 text-sm text-ink-muted">Tout voir <ChevronRight size={16} /></button>
         </div>
-        {activity.length === 0 ? <Empty icon="📒" text="Aucune opération ce mois-ci. Touche le bouton + pour en ajouter une." /> : <ActivityList items={activity.slice(0, 25)} />}
+        {activity.length === 0 ? <Empty icon="📒" text="Aucune opération ce mois-ci. Touche le bouton + pour en ajouter une." /> : <ActivityList items={activity.slice(0, 40)} />}
       </section>
+
+      <HomeAside goTab={goTab} />
     </div>
+  )
+}
+
+/* ---------- 3e colonne sur grand écran : qui me doit, prochaines échéances ---------- */
+function HomeAside({ goTab }: { goTab: GoTab }) {
+  const { receivables, contactById, sales, saleState, cur } = useData()
+  const forms = useForms()
+  const [hidden] = useHidden()
+  const upcoming = sales.map((s) => ({ s, st: saleState.get(s.id)! })).filter((x) => x.st.remaining > 0 && x.st.nextDue)
+    .sort((a, b) => (a.st.nextDue! < b.st.nextDue! ? -1 : 1)).slice(0, 6)
+  return (
+    <aside className="hidden space-y-4 2xl:block 2xl:sticky 2xl:top-4">
+      <section className="rounded-[28px] border border-cream-line bg-cream-tile p-5">
+        <div className="mb-3 flex items-center"><h3 className="flex-1 font-semibold">Qui me doit</h3><button onClick={() => goTab('dettes')} className="text-sm text-ink-muted">Tout voir</button></div>
+        {receivables.length === 0 && <p className="text-sm text-ink-muted">Personne ne te doit d'argent.</p>}
+        {receivables.slice(0, 6).map((r) => {
+          const pct = r.principal ? Math.round((r.repaid / r.principal) * 100) : 0
+          return (
+            <button key={r.contact_id} onClick={() => forms.open({ f: 'contact', id: r.contact_id })} className="block w-full py-2.5 text-left">
+              <span className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm font-medium">{contactById.get(r.contact_id)?.name}</span>
+                <span className={`tabular text-sm font-semibold ${r.late ? 'text-red-600' : ''}`}>{hidden ? '••••' : fmt(r.total, cur)}</span></span>
+              <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-neutral-100"><span className={`block h-full rounded-full ${r.late ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} /></span>
+            </button>
+          )
+        })}
+      </section>
+      <section className="rounded-[28px] border border-cream-line bg-cream-tile p-5">
+        <h3 className="mb-3 flex items-center gap-2 font-semibold"><CalendarClock size={18} /> Prochaines échéances</h3>
+        {upcoming.length === 0 && <p className="text-sm text-ink-muted">Aucune échéance à venir.</p>}
+        {upcoming.map(({ s, st }) => (
+          <button key={s.id} onClick={() => forms.open({ f: 'saleDetail', id: s.id })} className="flex w-full items-center gap-2 py-2 text-left text-sm">
+            <span className="min-w-0 flex-1"><span className="block truncate font-medium">{contactById.get(s.contact_id ?? '')?.name ?? 'Client'}</span><span className="block text-xs text-ink-muted">{fmtDateLong(st.nextDue!)}</span></span>
+            <span className="tabular">{hidden ? '••••' : fmt(st.remaining, cur)}</span>
+          </button>
+        ))}
+      </section>
+    </aside>
   )
 }
