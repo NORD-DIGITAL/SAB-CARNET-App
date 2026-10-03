@@ -50,7 +50,7 @@ function Choice({ onPick }: { onPick: (m: 'perso' | 'pro') => void }) {
   return (
     <div className="lg:mx-auto lg:max-w-5xl 3xl:max-w-7xl">
       <Header title="Business" />
-      <div className="grid gap-4 px-5 pb-10 sm:grid-cols-2 lg:px-8">
+      <div className="grid grid-cols-1 gap-4 px-5 pb-10 sm:grid-cols-2 lg:px-8">
         <button onClick={() => onPick('perso')} className="group relative flex min-h-[15rem] flex-col overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0F1B3D] via-[#14264F] to-[#0B3B5C] p-6 text-left text-white shadow-lg transition active:scale-[.99] lg:min-h-[19rem] lg:p-8 3xl:min-h-[28rem] 3xl:p-10">
           <Store size={120} strokeWidth={1} className="pointer-events-none absolute -bottom-4 -right-4 text-white/10" />
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: 'var(--accent)' }}><ShoppingBag size={26} className="text-ink" /></span>
@@ -246,7 +246,7 @@ function Ventes() {
         <input className="w-full bg-transparent py-2.5 outline-none" placeholder="Client ou produit" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher une vente" />
       </div>
       {list.length === 0 && f !== 'histo' && <Empty icon="🛍️" text={f === 'en_retard' ? 'Aucun client en retard. 👏' : 'Aucune vente ici.'} />}
-      <div className="grid gap-2 xl:grid-cols-2 3xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 xl:grid-cols-2 3xl:grid-cols-3">
       {list.map((s) => {
         const st = saleState.get(s.id)!
         const what = saleItems.filter((i) => i.sale_id === s.id).map((i) => productById.get(i.product_id)?.name).filter(Boolean).join(', ')
@@ -419,7 +419,7 @@ function Pro() {
     <div className="space-y-4 px-5 pb-10 lg:px-8">
       <Insights items={proInsights(d)} />
       {investments.length === 0 && <Empty icon="🤝" text="Note ici l'argent que tu mets dans le business d'un partenaire (salon de coiffure, boutique…) et ce que tu récupères." />}
-      <div className="grid gap-3 lg:grid-cols-2 3xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 3xl:grid-cols-3">
         {investments.map((i) => {
           const st = investState.get(i.id)!
           const target = i.agreement_type === 'pret_remboursable' ? i.expected_return ?? st.invested : st.invested
@@ -475,7 +475,7 @@ function StockMoves({ q }: { q: string }) {
   }, [purchases, purchaseItems, sales, saleItems, productById, contactById, q])
   if (!rows.length) return <Empty icon="📦" text="Aucun mouvement de stock." />
   return (
-    <div className="grid gap-x-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
       {rows.slice(0, 300).map((r) => (
         <button key={r.key} onClick={() => forms.open(r.open)} className="flex w-full items-center gap-3 border-b border-neutral-100 py-3 text-left">
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${r.qty > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>{r.qty > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}</span>

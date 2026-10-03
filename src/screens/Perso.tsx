@@ -110,7 +110,7 @@ function Depenses() {
   }, [list])
   const activity = useMemo(() => buildActivity(d).filter((a) => a.key.startsWith('e') && a.date.startsWith(month)), [d, month])
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
       <section>
         <h3 className="mb-3 font-semibold">Par catégorie</h3>
         {byCat.length === 0 && <p className="text-sm text-ink-muted">Rien ce mois-ci.</p>}
@@ -154,7 +154,7 @@ function Sport() {
       </div>
       {unpaid.length > 0 && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{unpaid.length} séance{unpaid.length > 1 ? 's' : ''} pas encore payée{unpaid.length > 1 ? 's' : ''} ({fmt(unpaid.reduce((a, s) => a + s.price, 0), cur)}).</p>}
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <section>
           <div className="mb-2 flex items-center"><h3 className="flex-1 font-semibold">Abonnements et forfaits</h3><button onClick={() => forms.open({ f: 'sportPackage' })} className="flex items-center gap-1 text-sm text-[#4A56E2]"><Ticket size={16} /> Ajouter</button></div>
           {active.length === 0 && <p className="text-sm text-ink-muted">Aucun forfait en cours.</p>}
@@ -189,7 +189,7 @@ function Sport() {
       <section>
         <h3 className="mb-2 font-semibold">Établissements et coachs</h3>
         {venues.length + coaches.length === 0 && <p className="text-sm text-ink-muted">Ils s'ajoutent quand tu notes une séance ou un forfait.</p>}
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {venues.map((v) => <div key={v.id} className="rounded-2xl border border-cream-line p-3"><p className="text-xs text-ink-muted">Établissement</p><p className="truncate font-medium">{v.name}</p><p className="tabular text-xs text-ink-muted">Total payé : {fmt(spentBy('venue_id', v.id), cur)}</p></div>)}
           {coaches.map((c) => <div key={c.id} className="rounded-2xl border border-cream-line p-3"><p className="text-xs text-ink-muted">Coach indépendant</p><p className="truncate font-medium">{c.name}</p><p className="tabular text-xs text-ink-muted">Total payé : {fmt(spentBy('coach_id', c.id), cur)}</p></div>)}
         </div>
@@ -216,7 +216,7 @@ function Beaute() {
         <div className="rounded-2xl bg-cream-tile p-3"><p className="text-xs text-ink-muted">Dépensé ce mois</p><p className="tabular font-semibold">{fmt(spent, cur)}</p></div>
         <div className="rounded-2xl bg-sun-100 p-3"><p className="flex items-center gap-1 text-xs"><CalendarClock size={14} /> Prochain RDV</p><p className="truncate text-sm font-semibold">{next[0] ? `${fmtDateLong(next[0].next_appointment!.slice(0, 10))}` : 'Aucun'}</p></div>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section>
           <div className="mb-2 flex items-center"><h3 className="flex-1 font-semibold">{all ? 'Toutes les prestations' : 'Prestations du mois'}</h3><button onClick={() => setAll(!all)} className="text-sm text-ink-muted">{all ? 'Ce mois' : 'Tout voir'}</button></div>
           {list.length === 0 && <Empty icon="💅" text="Aucune prestation." />}

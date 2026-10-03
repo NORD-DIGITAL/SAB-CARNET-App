@@ -132,7 +132,7 @@ export function ContactSheet({ open, onClose, id }: { open: boolean; onClose: ()
         </div>
         {owesMe > 0 && c.phone && <a href={waLink(c.phone, msg)} target="_blank" rel="noopener" className="btn-dark w-full"><MessageCircle size={20} /> Envoyer un rappel WhatsApp</a>}
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Dossiers en cours */}
           <section className="space-y-2">
             <h3 className="font-semibold">Dossiers en cours</h3>

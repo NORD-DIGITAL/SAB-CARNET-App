@@ -47,7 +47,7 @@ export function UsersPage() {
       </div>
       {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{err}</p>}
       {list.length === 0 && <Empty icon="👥" text="Aucun utilisateur trouvé." />}
-      <div className="grid gap-2 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {list.map((u) => {
           const [label, cls] = status(u)
           return (

@@ -90,7 +90,7 @@ export default function DettesScreen() {
         {tab !== 'personnes' && (
           <>
             {rows.length === 0 && <Empty icon={isOwed ? '🤝' : '✅'} text={isOwed ? 'Personne ne te doit d\'argent. Les ventes à crédit et les prêts apparaissent ici.' : 'Tu ne dois d\'argent à personne.'} />}
-            <div className="grid gap-3 lg:grid-cols-2 3xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 3xl:grid-cols-3">
               {sorted(rows).map((r) => <PersonCard key={r.contact_id} r={r} owed={isOwed} />)}
             </div>
           </>
@@ -98,7 +98,7 @@ export default function DettesScreen() {
         {tab === 'personnes' && (
           <>
             {contacts.length === 0 && <Empty icon="👥" text="Les personnes s'ajoutent toutes seules quand tu notes une vente, un prêt ou un emprunt." />}
-            <div className="grid gap-x-6 lg:grid-cols-2 3xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2 3xl:grid-cols-3">
               {contacts.filter((c) => match(c.id)).map((c) => {
                 const owe = receivables.find((r) => r.contact_id === c.id)?.total ?? 0
                 const mine = payables.find((r) => r.contact_id === c.id)?.total ?? 0
